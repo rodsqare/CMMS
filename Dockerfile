@@ -18,10 +18,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client
+# Clean any existing generated Prisma Client and regenerate with new schema
+RUN rm -rf node_modules/.prisma node_modules/@prisma/client
 RUN npx prisma generate
 
-# Build Next.js
+# Build Next.js (skip prisma generate in build script since we just did it)
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
