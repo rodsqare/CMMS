@@ -18,8 +18,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client with the correct schema (engineType = binary)
-RUN npx prisma generate
+# Remove cached Prisma Client and force regeneration with binary engine
+RUN rm -rf node_modules/.prisma
+RUN npx prisma generate --force
 
 # Build Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
