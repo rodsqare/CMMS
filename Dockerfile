@@ -17,12 +17,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Now generate Prisma Client with the correct schema (engineType = binary)
+# Generate Prisma Client with the correct schema (engineType = binary)
 RUN npx prisma generate
 
-# Build Next.js
+# Build Next.js (skip prisma generate since we already did it above)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN npx next build
 
 # Production image, copy all the files and run next
 FROM base AS runner
