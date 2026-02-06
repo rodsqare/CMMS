@@ -6,10 +6,11 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Copy package files ONLY (not prisma schema yet to avoid postinstall issues)
+# Copy package files and prisma schema
 COPY package.json package-lock.json* ./
-# Install dependencies without postinstall scripts
-RUN npm install --frozen-lockfile --ignore-scripts || npm install --ignore-scripts
+COPY prisma ./prisma
+# Install dependencies
+RUN npm install --frozen-lockfile || npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -17,12 +18,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client with the correct schema (engineType = binary)
-RUN npx prisma generate
-
-# Build Next.js (skip prisma generate since we already did it above)
+# Build Next.js (prisma generate will run via postinstall)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npx next build
+RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

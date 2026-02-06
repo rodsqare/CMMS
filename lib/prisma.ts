@@ -5,7 +5,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // Initialize Prisma Client
-// Prisma 7 reads datasource configuration from prisma.config.ts automatically
+// Prisma 5 reads datasource URL from schema.prisma
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
