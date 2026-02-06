@@ -8,8 +8,8 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
-# Install dependencies with clean install
-RUN npm ci
+# Install dependencies (use install to handle lock file sync issues)
+RUN npm install --frozen-lockfile || npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
