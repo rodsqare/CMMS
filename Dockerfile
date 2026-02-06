@@ -43,11 +43,15 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 
-# Create startup script that runs migrations before starting the app
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'npx prisma db push --accept-data-loss' >> /app/start.sh && \
-    echo 'npm start' >> /app/start.sh && \
-    chmod +x /app/start.sh
+# Create startup script as root, then change ownership
+RUN echo '#!/bin/sh' > /app/docker-entrypoint.sh && \
+    echo 'set -e' >> /app/docker-entrypoint.sh && \
+    echo 'echo "Running Prisma migrations..."' >> /app/docker-entrypoint.sh && \
+    echo 'npx prisma db push --accept-data-loss --skip-generate' >> /app/docker-entrypoint.sh && \
+    echo 'echo "Starting Next.js application..."' >> /app/docker-entrypoint.sh && \
+    echo 'exec node server.js' >> /app/docker-entrypoint.sh && \
+    chmod +x /app/docker-entrypoint.sh && \
+    chown nextjs:nodejs /app/docker-entrypoint.sh
 
 USER nextjs
 
@@ -57,4 +61,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Run migrations and start the application
-CMD ["/bin/sh", "/app/start.sh"]
+CMD ["/app/docker-entrypoint.sh"]
