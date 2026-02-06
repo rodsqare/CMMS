@@ -46,10 +46,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 # Create startup script as root, then change ownership
 RUN echo '#!/bin/sh' > /app/docker-entrypoint.sh && \
     echo 'set -e' >> /app/docker-entrypoint.sh && \
-    echo 'echo "Running Prisma migrations..."' >> /app/docker-entrypoint.sh && \
+    echo 'echo "[PRISMA] Running database migrations..."' >> /app/docker-entrypoint.sh && \
     echo 'npx prisma db push --accept-data-loss --skip-generate' >> /app/docker-entrypoint.sh && \
-    echo 'echo "Starting Next.js application..."' >> /app/docker-entrypoint.sh && \
-    echo 'exec node server.js' >> /app/docker-entrypoint.sh && \
+    echo 'echo "[PRISMA] Database migrations completed successfully"' >> /app/docker-entrypoint.sh && \
+    echo 'echo "[NEXT] Starting Next.js application..."' >> /app/docker-entrypoint.sh && \
+    echo 'exec node_modules/.bin/next start' >> /app/docker-entrypoint.sh && \
     chmod +x /app/docker-entrypoint.sh && \
     chown nextjs:nodejs /app/docker-entrypoint.sh
 
