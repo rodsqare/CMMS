@@ -29,6 +29,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+RUN apk add --no-cache openssl
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -41,6 +43,12 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 
+# Create startup script that runs migrations before starting the app
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'npx prisma db push --accept-data-loss' >> /app/start.sh && \
+    echo 'npm start' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -48,5 +56,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start the application
-CMD ["npm", "start"]
+# Run migrations and start the application
+CMD ["/bin/sh", "/app/start.sh"]
