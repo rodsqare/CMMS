@@ -3,14 +3,13 @@ FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Copy package files and prisma schema
+# Copy package files ONLY (not prisma schema yet to avoid postinstall issues)
 COPY package.json package-lock.json* ./
-COPY prisma ./prisma
-# Install dependencies (use install to handle lock file sync issues)
-RUN npm install --frozen-lockfile || npm install
+# Install dependencies without postinstall scripts
+RUN npm install --frozen-lockfile --ignore-scripts || npm install --ignore-scripts
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -18,8 +17,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Remove cached Prisma Client and regenerate with binary engine from updated schema
-RUN rm -rf node_modules/.prisma
+# Now generate Prisma Client with the correct schema (engineType = binary)
 RUN npx prisma generate
 
 # Build Next.js
