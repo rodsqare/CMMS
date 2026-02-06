@@ -15,7 +15,6 @@
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/adapter-mysql": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
