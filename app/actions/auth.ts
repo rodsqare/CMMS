@@ -22,9 +22,9 @@ export async function validateLogin(email: string, password: string) {
   try {
     console.log("[v0] Searching for user in database...")
     
-    // Find user by email
-    const user = await prisma.usuarios.findUnique({
-      where: { correo: email }
+    // Find user by email (using Prisma model field names)
+    const user = await prisma.usuario.findUnique({
+      where: { email: email }
     })
 
     if (!user) {
@@ -38,7 +38,7 @@ export async function validateLogin(email: string, password: string) {
     console.log("[v0] User found, verifying password...")
     
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.contrasena)
+    const isValidPassword = await bcrypt.compare(password, user.password)
 
     if (!isValidPassword) {
       console.log("[v0] Invalid password")
@@ -49,7 +49,7 @@ export async function validateLogin(email: string, password: string) {
     }
 
     // Check if user is active
-    if (user.estado !== 'activo') {
+    if (!user.activo) {
       console.log("[v0] User is not active")
       return {
         success: false,
@@ -63,7 +63,7 @@ export async function validateLogin(email: string, password: string) {
     const token = jwt.sign(
       {
         userId: user.id,
-        email: user.correo,
+        email: user.email,
         role: user.rol,
       },
       JWT_SECRET,
@@ -76,11 +76,11 @@ export async function validateLogin(email: string, password: string) {
       success: true,
       user: {
         id: user.id,
-        email: user.correo,
+        email: user.email,
         name: user.nombre,
         role: user.rol.toLowerCase(),
-        especialidad: user.especialidad || undefined,
-        estado: user.estado,
+        especialidad: undefined,
+        estado: user.activo ? 'activo' : 'inactivo',
       },
       token,
     }
