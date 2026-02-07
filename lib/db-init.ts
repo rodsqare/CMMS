@@ -7,15 +7,22 @@ import mysql from 'mysql2/promise'
  */
 
 export async function initializeDatabase() {
+  console.log('[DB-INIT] ========== DATABASE INITIALIZATION START ==========')
+  console.log('[DB-INIT] Environment check:', {
+    hasDATABASE_URL: !!process.env.DATABASE_URL,
+    hasMYSQL_URL: !!process.env.MYSQL_URL,
+  })
+  
   // Railway provides MYSQL_URL, fallback to DATABASE_URL
   const databaseUrl = process.env.DATABASE_URL || process.env.MYSQL_URL
   
   if (!databaseUrl) {
-    console.error('[DB-INIT] DATABASE_URL or MYSQL_URL not found')
+    console.error('[DB-INIT] ERROR: DATABASE_URL or MYSQL_URL not found')
+    console.error('[DB-INIT] Available env vars:', Object.keys(process.env).filter(k => k.includes('SQL') || k.includes('DATABASE')))
     return
   }
 
-  console.log('[DB-INIT] Using database connection...')
+  console.log('[DB-INIT] Database URL found, creating connection pool...')
   
   const pool = mysql.createPool({
     uri: databaseUrl,
