@@ -43,8 +43,21 @@ export async function initializeDatabase() {
     )
     const tableCount = (tables as any[])[0].count
 
+    // Always ensure configuration table exists
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS configuracion (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        clave VARCHAR(100) NOT NULL UNIQUE,
+        valor TEXT,
+        descripcion VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_clave (clave)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `)
+    
     if (tableCount > 0) {
-      console.log('[DB-INIT] Database tables already exist, skipping initialization')
+      console.log('[DB-INIT] Database tables already exist, skipping main initialization')
       await pool.end()
       return
     }
