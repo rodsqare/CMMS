@@ -5,11 +5,8 @@ import { TooltipContent } from "@/components/ui/tooltip"
 import React from "react"
 
 import { useState, useEffect, useCallback, useMemo } from "react" // Added useMemo
-import { getDashboardStats } from "@/app/actions/dashboard"
-import type { DashboardStats } from "@/lib/api/dashboard"
-import { fetchEquipos, saveEquipo, removeEquipo, getEquipo } from "@/app/actions/equipos" // Imported getEquipo
-import type { Equipo } from "@/lib/api/equipos"
-import { checkEquipoAssociations } from "@/lib/api/equipos" // Import check associations function
+import { getDashboardStats, type DashboardStats } from "@/app/actions/dashboard"
+import { fetchEquipos, saveEquipo, removeEquipo, fetchEquipoDetails, type Equipo } from "@/app/actions/equipos"
 import {
   fetchUsuarios,
   saveUsuario,
@@ -17,10 +14,10 @@ import {
   fetchUsuarioDetails,
   updatePermissions,
   resetPassword,
-  toggleUserStatus, // Import toggle status action
+  toggleUserStatus,
   getUserActivity,
+  type Usuario,
 } from "@/app/actions/usuarios"
-import type { Usuario } from "@/lib/api/usuarios"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
