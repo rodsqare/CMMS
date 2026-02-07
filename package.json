@@ -53,6 +53,7 @@
     "embla-carousel-react": "latest",
     "input-otp": "latest",
     "jose": "^5.9.6",
+    "jsonwebtoken": "^9.0.2",
     "jspdf": "latest",
     "jspdf-autotable": "latest",
     "lucide-react": "^0.454.0",
@@ -77,6 +78,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
     "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
