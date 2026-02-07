@@ -3,16 +3,15 @@
 import { prisma } from "@/lib/prisma"
 
 export type Mantenimiento = {
-  id: number
+  id?: number
   equipo_id: number
   tipo: string
-  descripcion?: string | null
+  procedimiento?: string | null
   frecuencia: string
-  ultima_fecha?: string | null
-  proxima_fecha: string
-  tecnico_asignado?: string | null
-  resultado?: string | null
-  costo?: number | null
+  ultima_realizacion?: string | null
+  proxima_programada: string
+  descripcion?: string | null
+  activo?: boolean
   created_at?: string
   updated_at?: string
 }
@@ -22,7 +21,7 @@ export async function getAllMantenimientos(params?: {
   perPage?: number
   tipo?: string
   frecuencia?: string
-  resultado?: string
+  activo?: boolean
   search?: string
 }) {
   try {
@@ -40,14 +39,15 @@ export async function getAllMantenimientos(params?: {
       where.frecuencia = params.frecuencia
     }
     
-    if (params?.resultado) {
-      where.resultado = params.resultado
+    if (params?.activo !== undefined) {
+      where.activo = params.activo
     }
     
     if (params?.search) {
       where.OR = [
         { descripcion: { contains: params.search } },
-        { tecnico_asignado: { contains: params.search } },
+        { procedimiento: { contains: params.search } },
+        { equipo: { nombre: { contains: params.search } } },
       ]
     }
 
@@ -91,15 +91,14 @@ export async function createMantenimiento(mantenimiento: any) {
   try {
     const result = await prisma.mantenimiento.create({
       data: {
-        equipo_id: mantenimiento.equipoId,
+        equipo_id: mantenimiento.equipoId || mantenimiento.equipo_id,
         tipo: mantenimiento.tipo?.toLowerCase(),
         descripcion: mantenimiento.descripcion,
+        procedimiento: mantenimiento.procedimiento,
         frecuencia: mantenimiento.frecuencia?.toLowerCase(),
-        ultima_fecha: mantenimiento.ultimaFecha,
-        proxima_fecha: mantenimiento.proximaFecha,
-        tecnico_asignado: mantenimiento.tecnicoAsignado,
-        resultado: mantenimiento.resultado?.toLowerCase() || "pendiente",
-        costo: mantenimiento.costo,
+        ultima_realizacion: mantenimiento.ultimaFecha ? new Date(mantenimiento.ultimaFecha) : null,
+        proxima_programada: new Date(mantenimiento.proximaFecha || mantenimiento.proxima_programada),
+        activo: mantenimiento.activo ?? true,
         created_at: new Date(),
         updated_at: new Date(),
       }
@@ -117,20 +116,29 @@ export async function updateMantenimiento(id: number, mantenimiento: any) {
   console.log("[v0] Action: Updating maintenance", id, mantenimiento)
 
   try {
+    const updateData: any = {
+      tipo: mantenimiento.tipo?.toLowerCase(),
+      descripcion: mantenimiento.descripcion,
+      procedimiento: mantenimiento.procedimiento,
+      frecuencia: mantenimiento.frecuencia?.toLowerCase(),
+      updated_at: new Date(),
+    }
+
+    if (mantenimiento.ultimaFecha) {
+      updateData.ultima_realizacion = new Date(mantenimiento.ultimaFecha)
+    }
+    
+    if (mantenimiento.proximaFecha || mantenimiento.proxima_programada) {
+      updateData.proxima_programada = new Date(mantenimiento.proximaFecha || mantenimiento.proxima_programada)
+    }
+    
+    if (mantenimiento.activo !== undefined) {
+      updateData.activo = mantenimiento.activo
+    }
+
     const result = await prisma.mantenimiento.update({
       where: { id },
-      data: {
-        equipo_id: mantenimiento.equipoId,
-        tipo: mantenimiento.tipo?.toLowerCase(),
-        descripcion: mantenimiento.descripcion,
-        frecuencia: mantenimiento.frecuencia?.toLowerCase(),
-        ultima_fecha: mantenimiento.ultimaFecha,
-        proxima_fecha: mantenimiento.proximaFecha,
-        tecnico_asignado: mantenimiento.tecnicoAsignado,
-        resultado: mantenimiento.resultado?.toLowerCase(),
-        costo: mantenimiento.costo,
-        updated_at: new Date(),
-      }
+      data: updateData
     })
     console.log("[v0] Action: Maintenance updated successfully", result)
     return { success: true, data: result }
@@ -158,24 +166,28 @@ export async function deleteMantenimiento(id: number) {
 
 export async function getMantenimientosStats() {
   try {
-    const [total, preventivo, correctivo, activos, inactivos] = await Promise.all([
+    const today = new Date()
+    
+    const [total, preventivo, correctivo, activos, pendientes, vencidos] = await Promise.all([
       prisma.mantenimiento.count(),
       prisma.mantenimiento.count({ where: { tipo: 'preventivo' } }),
       prisma.mantenimiento.count({ where: { tipo: 'correctivo' } }),
       prisma.mantenimiento.count({ where: { activo: true } }),
-      prisma.mantenimiento.count({ where: { activo: false } }),
+      prisma.mantenimiento.count({ where: { proxima_programada: { gte: today }, activo: true } }),
+      prisma.mantenimiento.count({ where: { proxima_programada: { lt: today }, activo: true } }),
     ])
 
     return {
       total,
       preventivo,
       correctivo,
-      pendientes: activos,
-      completados: inactivos,
+      activos,
+      pendientes,
+      vencidos,
     }
   } catch (error) {
     console.error("[v0] Error fetching stats:", error)
-    return { total: 0, preventivo: 0, correctivo: 0, pendientes: 0, completados: 0 }
+    return { total: 0, preventivo: 0, correctivo: 0, activos: 0, pendientes: 0, vencidos: 0 }
   }
 }
 
@@ -190,11 +202,12 @@ export async function checkUpcomingMaintenances() {
           gte: today,
           lte: nextWeek,
         },
-        activo: true
+        activo: true,
       },
       include: {
         equipo: true,
-      }
+      },
+      orderBy: { proxima_programada: 'asc' }
     })
 
     console.log("[v0] Upcoming maintenances checked:", { count: upcoming.length })

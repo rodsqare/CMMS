@@ -4,15 +4,15 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
 export type Usuario = {
-  id: number
+  id?: number
   nombre: string
   email: string
   rol: string
   activo: boolean
   permissions?: any
   estado?: string
-  created_at?: Date
-  updated_at?: Date
+  created_at?: string | Date
+  updated_at?: string | Date
 }
 
 export type UsuarioWithPassword = Usuario & {
