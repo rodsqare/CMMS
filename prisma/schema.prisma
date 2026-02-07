@@ -1,8 +1,11 @@
+// Prisma schema for CMMS (Computerized Maintenance Management System)
+// Using PostgreSQL via Neon
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
+  // Force client regeneration for PostgreSQL
 }
 
 datasource db {

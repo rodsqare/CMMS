@@ -7,6 +7,13 @@ const globalForPrisma = globalThis as unknown as {
   dbInitPromise?: Promise<void>
 }
 
+// Verify DATABASE_URL is available
+console.log('[PRISMA] DATABASE_URL available:', !!process.env.DATABASE_URL)
+if (!process.env.DATABASE_URL) {
+  console.error('[PRISMA] WARNING: DATABASE_URL is not set!')
+  console.error('[PRISMA] Available env keys:', Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('SQL')))
+}
+
 // Initialize Prisma Client
 // Prisma 5 reads datasource URL from schema.prisma
 export const prisma =
