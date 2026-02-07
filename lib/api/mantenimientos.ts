@@ -2,43 +2,45 @@ import { apiClient } from "./client"
 import { serverApiClient } from "./server-client"
 
 export interface Mantenimiento {
-  id: number
-  equipoId: number
-  equipo: string
-  tipo: string
-  frecuencia: string
-  proximaFecha: string
-  ultimaFecha?: string
-  resultado: string
-  observaciones?: string
-  responsableId?: number
-  responsableNombre?: string
-  descripcion?: string
-  creadoEn?: string
-  actualizadoEn?: string
-  programada_orden_generada?: boolean
-  tecnicoAsignadoId?: number
-  tecnicoAsignado?: string
-}
-
-export interface MantenimientoBackend {
-  id: number
-  id_equipo: number
+  id?: number
+  equipo_id: number
   equipo?: string
   tipo: string
   frecuencia: string
-  proxima_fecha: string
-  ultima_fecha?: string
-  resultado: string
-  observaciones?: string
-  responsable_id?: number
-  responsable?: {
+  proxima_programada: string
+  ultima_realizacion?: string
+  descripcion?: string
+  procedimiento?: string
+  creado_por?: number
+  creador?: {
     id: number
     nombre: string
+    email: string
   }
+  activo?: boolean
   created_at?: string
   updated_at?: string
-  programada_orden_generada?: boolean
+}
+
+export interface MantenimientoBackend {
+  id?: number
+  equipo_id: number
+  equipo?: string
+  tipo: string
+  frecuencia: string
+  proxima_programada: string
+  ultima_realizacion?: string
+  descripcion?: string
+  procedimiento?: string
+  creado_por?: number
+  creador?: {
+    id: number
+    nombre: string
+    email: string
+  }
+  activo?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface MantenimientosPaginados {
