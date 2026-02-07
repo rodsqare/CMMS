@@ -18,6 +18,7 @@ import {
   getUserActivity,
   type Usuario,
 } from "@/app/actions/usuarios"
+import { getHospitalLogo, setHospitalLogo as saveHospitalLogo } from "@/app/actions/configuracion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -506,10 +507,14 @@ export default function DashboardPage() {
   // Moved useEffect hooks to the top level
   useEffect(() => {
     setIsMounted(true)
-    const savedLogo = localStorage.getItem("hospitalLogo")
-    if (savedLogo) {
-      setHospitalLogo(savedLogo)
-    }
+    // Load hospital logo from database
+    getHospitalLogo().then((logo) => {
+      if (logo) {
+        setHospitalLogo(logo)
+      }
+    }).catch((error) => {
+      console.error("[v0] Error loading hospital logo:", error)
+    })
   }, [])
 
   const loadEquipment = async () => {
@@ -5873,14 +5878,28 @@ export default function DashboardPage() {
   }, [])
 
   // ADDED: Logo change handler
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const logoUrl = reader.result as string
         setHospitalLogo(logoUrl)
-        localStorage.setItem("hospitalLogo", logoUrl)
+        
+        // Save logo to database instead of localStorage
+        const result = await saveHospitalLogo(logoUrl)
+        if (result.success) {
+          toast({
+            title: "Logo actualizado",
+            description: "El logo del hospital se ha guardado correctamente.",
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "No se pudo guardar el logo.",
+            variant: "destructive",
+          })
+        }
       }
       reader.readAsDataURL(file)
     }
