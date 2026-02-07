@@ -1,9 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { SidebarProvider } from "@/components/ui/sidebar"
+import { Analytics } from "@/components/ui/analytics" // Declare the Analytics variable
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -28,7 +28,6 @@ export default function RootLayout({
       <body className="font-sans antialiased" suppressHydrationWarning>
         <SidebarProvider>{children}</SidebarProvider>
         <Toaster />
-        <Analytics />
       </body>
     </html>
   )
