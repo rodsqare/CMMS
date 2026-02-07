@@ -2362,15 +2362,40 @@ export default function DashboardPage() {
     }
   }
 
-  // CHANGE: handleFileUpload function
+  // CHANGE: handleFileUpload function with improved validation
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedEquipment) {
+      console.error("[v0] No file or equipment selected")
+      return
+    }
+
+    // Validate file type and size
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
+    const maxFileSize = 50 * 1024 * 1024 // 50MB
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        variant: "destructive",
+        title: "Tipo de archivo no permitido",
+        description: "Solo se permiten: PDF, imágenes (JPG, PNG), documentos Word y Excel.",
+      })
+      return
+    }
+
+    if (file.size > maxFileSize) {
+      toast({
+        variant: "destructive",
+        title: "Archivo muy grande",
+        description: "El tamaño máximo permitido es 50 MB.",
+      })
       return
     }
 
     try {
       setEquipmentLoading(true)
+      console.log("[v0] Starting file upload for equipment:", selectedEquipment.id)
+      
       const token = localStorage.getItem("authToken")
       const userId = localStorage.getItem("userId")
 
@@ -2383,9 +2408,11 @@ export default function DashboardPage() {
       const newDoc = await uploadDocumento(
         selectedEquipment.id,
         file,
-        userId ? Number.parseInt(userId) : 1, // Default to 1 if userId is not found, though this should be handled by authentication
+        userId ? Number.parseInt(userId) : 1,
         token,
       )
+
+      console.log("[v0] Document uploaded successfully:", newDoc)
 
       // Fetch updated equipment details to refresh the list of documents
       const { getEquipo } = await import("@/lib/api/equipos")
@@ -2399,8 +2426,8 @@ export default function DashboardPage() {
       setEquipment(equipment.map((eq) => (eq.id === selectedEquipment.id ? transformedEquipment : eq)))
 
       toast({
-        title: "Documento subido",
-        description: `El archivo ${file.name} se ha subido exitosamente.`,
+        title: "Documento subido exitosamente",
+        description: `El archivo "${file.name}" se ha cargado correctamente.`,
       })
     } catch (error) {
       console.error("[v0] Error uploading document:", error)
@@ -2418,10 +2445,18 @@ export default function DashboardPage() {
     }
   }
 
-  const handleViewDocument = (doc: { id?: number; url?: string }) => {
+  const handleViewDocument = (doc: { id?: number; url?: string; nombre?: string }) => {
     if (doc.url) {
+      console.log("[v0] Opening document:", doc.nombre || "unknown")
       const fullUrl = getDocumentoUrl(doc.url)
       window.open(fullUrl, "_blank")
+    } else {
+      console.warn("[v0] Document URL not available")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se puede abrir el documento. URL no disponible.",
+      })
     }
   }
 
@@ -2430,6 +2465,8 @@ export default function DashboardPage() {
 
     try {
       const { downloadDocumento } = await import("@/lib/api/documentos")
+      console.log("[v0] Starting download for document:", doc.nombre || `documento-${doc.id}`)
+
       const blob = await downloadDocumento(doc.id)
 
       // Create download link
@@ -2441,12 +2478,18 @@ export default function DashboardPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
+      console.log("[v0] Document downloaded successfully")
+      toast({
+        title: "Descarga completada",
+        description: `"${doc.nombre || 'documento'}" ha sido descargado correctamente.`,
+      })
     } catch (error) {
-      console.error("Error downloading document:", error)
+      console.error("[v0] Error downloading document:", error)
       toast({
         variant: "destructive",
         title: "Error al descargar documento",
-        description: "Ocurrió un error al descargar el archivo.",
+        description: error instanceof Error ? error.message : "Ocurrió un error al descargar el archivo.",
       })
     }
   }
@@ -2454,10 +2497,16 @@ export default function DashboardPage() {
   const handleDeleteDocument = async (docId: number, index: number) => {
     if (!selectedEquipment) return
 
-    if (!confirm("¿Está seguro de eliminar este documento?")) return
+    const doc = selectedEquipment.documentos?.[index]
+    const docName = doc?.nombre || "documento"
+
+    if (!confirm(`¿Está seguro de que desea eliminar "${docName}"? Esta acción no se puede deshacer.`)) {
+      return
+    }
 
     try {
       setEquipmentLoading(true)
+      console.log("[v0] Deleting document with ID:", docId)
 
       const { deleteDocumento } = await import("@/lib/api/documentos")
       await deleteDocumento(docId)
@@ -2469,16 +2518,17 @@ export default function DashboardPage() {
       setSelectedEquipment(transformedEquipment)
       setEquipment(equipment.map((eq) => (eq.id === selectedEquipment.id ? transformedEquipment : eq)))
 
+      console.log("[v0] Document deleted successfully")
       toast({
         title: "Documento eliminado",
-        description: "El documento se ha eliminado exitosamente.",
+        description: `"${docName}" ha sido eliminado correctamente.`,
       })
     } catch (error) {
-      console.error("Error deleting document:", error)
+      console.error("[v0] Error deleting document:", error)
       toast({
         variant: "destructive",
         title: "Error al eliminar documento",
-        description: "Ocurrió un error al eliminar el archivo.",
+        description: error instanceof Error ? error.message : "Ocurrió un error al eliminar el archivo.",
       })
     } finally {
       setEquipmentLoading(false)
@@ -3343,35 +3393,57 @@ export default function DashboardPage() {
               {/* Historial de Tareas section has been removed */}
 
               {/* Documents */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-medium">Documentos Asociados</h3>
-                  <Button size="sm" variant="outline" onClick={() => document.getElementById("fileInput")?.click()}>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">Documentos Asociados</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {(selectedEquipment.documentos || []).length} documento(s) cargado(s)
+                    </p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => document.getElementById("fileInput")?.click()}
+                    disabled={equipmentLoading}
+                  >
                     <Upload className="h-4 w-4 mr-2" />
-                    Subir Archivo
+                    {equipmentLoading ? "Subiendo..." : "Subir Archivo"}
                   </Button>
                   <input
                     id="fileInput"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
                     onChange={handleFileUpload}
                     style={{ display: "none" }}
+                    disabled={equipmentLoading}
                   />
                 </div>
+
                 <div className="space-y-2">
                   {(selectedEquipment.documentos || []).length > 0 ? (
                     (selectedEquipment.documentos || []).map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-blue-600" />
-                          <span>{doc.nombre || "N/A"}</span>
-                          <Badge variant="outline">{doc.tipo || "N/A"}</Badge>
-                          {doc.fechaSubida && <span className="text-xs text-gray-500">({doc.fechaSubida})</span>}
+                      <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center gap-3 flex-1">
+                          <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{doc.nombre || "Documento sin nombre"}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="secondary" className="text-xs">
+                                {doc.tipo || "desconocido"}
+                              </Badge>
+                              {doc.fechaSubida && (
+                                <span className="text-xs text-gray-500">
+                                  {new Date(doc.fechaSubida).toLocaleDateString("es-ES")}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-shrink-0">
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => handleViewDocument(doc)}
                             title="Ver documento"
                           >
@@ -3379,7 +3451,7 @@ export default function DashboardPage() {
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => handleDownloadDocument(doc)}
                             title="Descargar documento"
                           >
@@ -3387,8 +3459,8 @@ export default function DashboardPage() {
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="text-red-600 bg-transparent"
+                            variant="ghost"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => doc.id && handleDeleteDocument(doc.id, index)}
                             title="Eliminar documento"
                           >
@@ -3398,8 +3470,17 @@ export default function DashboardPage() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 text-sm">No hay documentos asociados.</p>
+                    <div className="p-4 text-center border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                      <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">No hay documentos asociados.</p>
+                      <p className="text-gray-400 text-xs mt-1">Haz clic en "Subir Archivo" para agregar documentos.</p>
+                    </div>
                   )}
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                  <p className="font-semibold mb-1">Tipos de archivo permitidos:</p>
+                  <p>PDF, imágenes (JPG, PNG), documentos Word, Excel - Máximo 50 MB por archivo</p>
                 </div>
               </div>
 
