@@ -1025,6 +1025,14 @@ export default function DashboardPage() {
   const loadWorkOrders = async () => {
     setIsLoadingOrders(true)
     try {
+      console.log("[v0] loadWorkOrders - Starting fetch with filters:", {
+        estado: orderFilters.estado,
+        prioridad: orderFilters.prioridad,
+        tipo: orderFilters.tipo,
+        page: orderCurrentPage,
+        perPage: orderPerPage,
+      })
+
       const response = await fetchOrdenesTrabajo({
         estado: orderFilters.estado !== "all" ? orderFilters.estado : undefined,
         prioridad: orderFilters.prioridad !== "all" ? orderFilters.prioridad : undefined,
@@ -1032,14 +1040,34 @@ export default function DashboardPage() {
         fechaDesde: orderFilters.fechaDesde || undefined,
         fechaHasta: orderFilters.fechaHasta || undefined,
         search: searchOrder || undefined,
-        page: orderCurrentPage, // Use renamed state
-        perPage: orderPerPage, // Use renamed state
+        page: orderCurrentPage,
+        perPage: orderPerPage,
       })
 
-      setWorkOrders(response.data)
-      setOrderTotalPages(response.lastPage) // Use renamed state
+      console.log("[v0] loadWorkOrders - Response received:", {
+        dataLength: response.data?.length || 0,
+        total: response.total,
+        currentPage: response.currentPage,
+        lastPage: response.lastPage,
+      })
+
+      setWorkOrders(response.data || [])
+      setOrderTotalPages(response.lastPage || 1)
+
+      if (!response.data || response.data.length === 0) {
+        console.warn("[v0] loadWorkOrders - No orders returned from API")
+      }
     } catch (error) {
       console.error("[v0] Error loading work orders:", error)
+      if (error instanceof Error) {
+        console.error("[v0] Error message:", error.message)
+        console.error("[v0] Error stack:", error.stack)
+      }
+      toast({
+        variant: "destructive",
+        title: "Error al cargar órdenes",
+        description: error instanceof Error ? error.message : "No se pudieron cargar las órdenes de trabajo",
+      })
       setWorkOrders([])
     } finally {
       setIsLoadingOrders(false)
@@ -1066,9 +1094,14 @@ export default function DashboardPage() {
 
     try {
       const ordenToSave = selectedOrder ? { ...newOrderData, id: selectedOrder.id } : newOrderData
+      console.log("[v0] handleSaveOrder - Saving orden:", ordenToSave)
+      
       const savedOrder = await saveOrdenTrabajo(ordenToSave)
 
+      console.log("[v0] handleSaveOrder - Result:", savedOrder)
+
       if (savedOrder) {
+        console.log("[v0] handleSaveOrder - Success, reloading orders")
         toast({
           title: selectedOrder ? "Orden actualizada" : "Orden creada",
           description: selectedOrder
@@ -1076,18 +1109,28 @@ export default function DashboardPage() {
             : "La orden de trabajo ha sido creada correctamente",
         })
         setIsOrderDialogOpen(false)
+        setNewOrderData({
+          tipo: "Preventivo",
+          prioridad: "media",
+          estado: "abierta",
+          fechaCreacion: new Date().toISOString().split("T")[0],
+        })
+        setSelectedOrder(null)
+        setOrderFormErrors({})
         await loadWorkOrders()
       } else {
         throw new Error("No se recibió respuesta del servidor")
       }
     } catch (error) {
+      console.error("[v0] handleSaveOrder - Error:", error)
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       setOrderFormErrors({
-        general: "Error al guardar la orden. Por favor intente nuevamente.",
+        general: `Error al guardar la orden: ${errorMessage}`,
       })
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "No se pudo guardar la orden de trabajo",
+        title: "Error al guardar",
+        description: errorMessage || "No se pudo guardar la orden de trabajo",
       })
     } finally {
       setIsLoadingOrders(false)
@@ -1230,7 +1273,50 @@ export default function DashboardPage() {
     )
   }
 
-  const filteredOrders = workOrders
+  const filteredOrders = workOrders.filter((order) => {
+    // Apply search filter
+    if (searchOrder) {
+      const searchLower = searchOrder.toLowerCase()
+      const matchesSearch = 
+        order.numeroOrden?.toLowerCase().includes(searchLower) ||
+        order.equipoNombre?.toLowerCase().includes(searchLower) ||
+        order.descripcion?.toLowerCase().includes(searchLower) ||
+        order.tecnicoAsignadoNombre?.toLowerCase().includes(searchLower)
+      
+      if (!matchesSearch) return false
+    }
+
+    // Apply estado filter
+    if (orderFilters.estado !== "all" && order.estado?.toLowerCase() !== orderFilters.estado.toLowerCase()) {
+      return false
+    }
+
+    // Apply prioridad filter
+    if (orderFilters.prioridad !== "all" && order.prioridad?.toLowerCase() !== orderFilters.prioridad.toLowerCase()) {
+      return false
+    }
+
+    // Apply tipo filter
+    if (orderFilters.tipo !== "all" && order.tipo?.toLowerCase() !== orderFilters.tipo.toLowerCase()) {
+      return false
+    }
+
+    // Apply fecha desde filter
+    if (orderFilters.fechaDesde && order.fechaCreacion) {
+      if (new Date(order.fechaCreacion) < new Date(orderFilters.fechaDesde)) {
+        return false
+      }
+    }
+
+    // Apply fecha hasta filter
+    if (orderFilters.fechaHasta && order.fechaCreacion) {
+      if (new Date(order.fechaCreacion) > new Date(orderFilters.fechaHasta)) {
+        return false
+      }
+    }
+
+    return true
+  })
 
   const renderOrdenes = () => {
     const totalRecords = filteredOrders.length

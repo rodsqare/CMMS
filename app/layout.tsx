@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { Analytics } from "@/components/ui/analytics" // Declare the Analytics variable
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
