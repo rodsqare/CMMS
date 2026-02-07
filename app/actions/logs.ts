@@ -1,10 +1,27 @@
 "use server"
 
-import { getAuditLogs } from "@/lib/api/logs"
+import { prisma } from "@/lib/prisma"
 
 export async function fetchAuditLogs(search?: string, action?: string, perPage = 10) {
   try {
-    const result = await getAuditLogs(search, action, perPage)
+    const where: any = {}
+    
+    if (action) {
+      where.accion = action
+    }
+    
+    if (search) {
+      where.OR = [
+        { descripcion: { contains: search } },
+        { entidad: { contains: search } },
+      ]
+    }
+
+    const result = await prisma.log.findMany({
+      where,
+      take: perPage,
+      orderBy: { created_at: 'desc' }
+    })
 
     return {
       success: true,
@@ -15,6 +32,7 @@ export async function fetchAuditLogs(search?: string, action?: string, perPage =
     return {
       success: false,
       error: error instanceof Error ? error.message : "Error desconocido al obtener logs",
+      data: [],
     }
   }
 }

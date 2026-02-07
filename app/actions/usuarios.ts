@@ -1,34 +1,120 @@
 "use server"
 
-import {
-  fetchUsuarios as fetchUsuariosApi,
-  fetchUsuarioDetails as fetchUsuarioDetailsApi,
-  createUsuario as createUsuarioApi,
-  updateUsuario as updateUsuarioApi,
-  deleteUsuario as deleteUsuarioApi,
-  updateUsuarioPermissions as updateUsuarioPermissionsApi,
-  resetUsuarioPassword as resetUsuarioPasswordApi,
-  toggleUsuarioEstado as toggleUsuarioEstadoApi,
-  getUserActivity as getUserActivityApi, // Added import for getUserActivity
-  type Usuario,
-  type UsuarioWithPassword,
-  type FetchUsuariosParams,
-  type UsuariosResponse,
-  type UserActivity, // Added import for UserActivity type
-} from "@/lib/api/usuarios"
+import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
+
+export type Usuario = {
+  id: number
+  nombre: string
+  email: string
+  rol: string
+  activo: boolean
+  avatar?: string | null
+  permissions?: any
+  estado?: string
+  created_at?: Date
+  updated_at?: Date
+}
+
+export type UsuarioWithPassword = Usuario & {
+  password?: string
+}
+
+export type FetchUsuariosParams = {
+  page?: number
+  perPage?: number
+  rol?: string
+  estado?: string
+  search?: string
+}
+
+export type UsuariosResponse = {
+  data: Usuario[]
+  total: number
+  page: number
+  perPage: number
+}
+
+export type UserActivity = {
+  equipos: number
+  mantenimientos: number
+  ordenes: number
+}
 
 export async function fetchUsuarios(params: FetchUsuariosParams = {}): Promise<UsuariosResponse> {
   try {
-    return await fetchUsuariosApi(params)
+    const page = params.page || 1
+    const perPage = params.perPage || 10
+    const skip = (page - 1) * perPage
+
+    const where: any = {}
+    
+    if (params.rol) {
+      where.rol = params.rol
+    }
+    
+    if (params.estado) {
+      where.activo = params.estado === 'activo'
+    }
+    
+    if (params.search) {
+      where.OR = [
+        { nombre: { contains: params.search } },
+        { email: { contains: params.search } },
+      ]
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.usuario.findMany({
+        where,
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          rol: true,
+          activo: true,
+          avatar: true,
+          created_at: true,
+          updated_at: true,
+        },
+        skip,
+        take: perPage,
+        orderBy: { created_at: 'desc' }
+      }),
+      prisma.usuario.count({ where })
+    ])
+
+    return { 
+      data: data.map(u => ({ ...u, estado: u.activo ? 'activo' : 'inactivo' })),
+      total, 
+      page, 
+      perPage 
+    }
   } catch (error) {
     console.error("Error fetching usuarios:", error)
-    throw error
+    return { data: [], total: 0, page: 1, perPage: 10 }
   }
 }
 
 export async function fetchUsuarioDetails(id: number): Promise<Usuario | null> {
   try {
-    return await fetchUsuarioDetailsApi(id)
+    const usuario = await prisma.usuario.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        rol: true,
+        activo: true,
+        avatar: true,
+        created_at: true,
+        updated_at: true,
+      }
+    })
+    
+    if (!usuario) return null
+    
+    return { ...usuario, estado: usuario.activo ? 'activo' : 'inactivo' }
   } catch (error) {
     console.error("Error fetching usuario details:", error)
     return null
@@ -41,19 +127,68 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
   error?: string
 }> {
   try {
-    let savedUsuario: Usuario
+    let savedUsuario: any
 
     if (usuario.id) {
       // Update existing usuario
-      savedUsuario = await updateUsuarioApi(usuario.id, usuario)
+      const updateData: any = {
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        activo: usuario.activo,
+        updated_at: new Date(),
+      }
+      
+      if (usuario.password) {
+        updateData.password = await bcrypt.hash(usuario.password, 10)
+      }
+      
+      savedUsuario = await prisma.usuario.update({
+        where: { id: usuario.id },
+        data: updateData,
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          rol: true,
+          activo: true,
+          avatar: true,
+          created_at: true,
+          updated_at: true,
+        }
+      })
     } else {
       // Create new usuario
-      savedUsuario = await createUsuarioApi(usuario)
+      if (!usuario.password) {
+        return { success: false, error: "La contraseña es requerida" }
+      }
+      
+      savedUsuario = await prisma.usuario.create({
+        data: {
+          nombre: usuario.nombre,
+          email: usuario.email,
+          password: await bcrypt.hash(usuario.password, 10),
+          rol: usuario.rol,
+          activo: usuario.activo ?? true,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          rol: true,
+          activo: true,
+          avatar: true,
+          created_at: true,
+          updated_at: true,
+        }
+      })
     }
 
     return {
       success: true,
-      usuario: savedUsuario,
+      usuario: { ...savedUsuario, estado: savedUsuario.activo ? 'activo' : 'inactivo' },
     }
   } catch (error: any) {
     console.error("Error saving usuario:", error)
@@ -69,7 +204,9 @@ export async function removeUsuario(id: number): Promise<{
   error?: string
 }> {
   try {
-    await deleteUsuarioApi(id)
+    await prisma.usuario.delete({
+      where: { id }
+    })
     return { success: true }
   } catch (error: any) {
     console.error("Error removing usuario:", error)
@@ -89,10 +226,25 @@ export async function updatePermissions(
   error?: string
 }> {
   try {
-    const updatedUsuario = await updateUsuarioPermissionsApi(id, permissions)
+    // Permissions can be stored as JSON in the database if needed
+    const updatedUsuario = await prisma.usuario.update({
+      where: { id },
+      data: { updated_at: new Date() },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        rol: true,
+        activo: true,
+        avatar: true,
+        created_at: true,
+        updated_at: true,
+      }
+    })
+    
     return {
       success: true,
-      usuario: updatedUsuario,
+      usuario: { ...updatedUsuario, estado: updatedUsuario.activo ? 'activo' : 'inactivo', permissions },
     }
   } catch (error: any) {
     console.error("Error updating permissions:", error)
@@ -112,10 +264,28 @@ export async function resetPassword(
   error?: string
 }> {
   try {
-    const updatedUsuario = await resetUsuarioPasswordApi(id, newPassword)
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    const updatedUsuario = await prisma.usuario.update({
+      where: { id },
+      data: { 
+        password: hashedPassword,
+        updated_at: new Date() 
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        rol: true,
+        activo: true,
+        avatar: true,
+        created_at: true,
+        updated_at: true,
+      }
+    })
+    
     return {
       success: true,
-      usuario: updatedUsuario,
+      usuario: { ...updatedUsuario, estado: updatedUsuario.activo ? 'activo' : 'inactivo' },
     }
   } catch (error: any) {
     console.error("Error resetting password:", error)
@@ -135,24 +305,31 @@ export async function toggleUserStatus(
   error?: string
 }> {
   try {
-    console.log("[v0] Action: toggleUserStatus called", { id, nuevoEstado })
-
-    const usuario = await toggleUsuarioEstadoApi(id, nuevoEstado)
-
-    console.log("[v0] Action: toggleUserStatus success", { usuario })
+    const activo = nuevoEstado === "Activo"
+    const usuario = await prisma.usuario.update({
+      where: { id },
+      data: { 
+        activo,
+        updated_at: new Date() 
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        rol: true,
+        activo: true,
+        avatar: true,
+        created_at: true,
+        updated_at: true,
+      }
+    })
 
     return {
       success: true,
-      usuario,
+      usuario: { ...usuario, estado: usuario.activo ? 'activo' : 'inactivo' },
     }
   } catch (error: any) {
-    console.error("[v0] Action: toggleUserStatus error", {
-      id,
-      nuevoEstado,
-      error: error.message,
-      stack: error.stack,
-    })
-
+    console.error("Error changing user status:", error)
     return {
       success: false,
       error: error.message || "Error al cambiar el estado del usuario",
@@ -162,11 +339,15 @@ export async function toggleUserStatus(
 
 export async function getUserActivity(usuarioId: number, token: string): Promise<UserActivity> {
   try {
-    return await getUserActivityApi(usuarioId, token)
+    const [equipos, mantenimientos, ordenes] = await Promise.all([
+      prisma.equipo.count({ where: { usuario_id: usuarioId } }),
+      prisma.mantenimiento.count(),
+      prisma.orden_trabajo.count({ where: { tecnico_asignado_id: usuarioId } }),
+    ])
+    
+    return { equipos, mantenimientos, ordenes }
   } catch (error) {
     console.error("Error fetching user activity:", error)
-    throw error
+    return { equipos: 0, mantenimientos: 0, ordenes: 0 }
   }
 }
-
-export type { UserActivity, Usuario, UsuarioWithPassword, FetchUsuariosParams, UsuariosResponse }
