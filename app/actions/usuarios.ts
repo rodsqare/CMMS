@@ -9,7 +9,6 @@ export type Usuario = {
   email: string
   rol: string
   activo: boolean
-  avatar?: string | null
   permissions?: any
   estado?: string
   created_at?: Date
@@ -73,7 +72,6 @@ export async function fetchUsuarios(params: FetchUsuariosParams = {}): Promise<U
           email: true,
           rol: true,
           activo: true,
-          avatar: true,
           created_at: true,
           updated_at: true,
         },
