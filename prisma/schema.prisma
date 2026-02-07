@@ -6,16 +6,16 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Usuario {
   id                Int      @id @default(autoincrement())
-  nombre            String   @db.VarChar(255)
-  email             String   @unique @db.VarChar(255)
-  password          String   @db.VarChar(255)
-  rol               String   @db.VarChar(50)
+  nombre            String
+  email             String   @unique
+  password          String
+  rol               String
   activo            Boolean  @default(true)
   ultimo_acceso     DateTime?
   intentos_fallidos Int      @default(0)
@@ -39,23 +39,23 @@ model Usuario {
 
 model Equipo {
   id                   Int       @id @default(autoincrement())
-  codigo               String    @unique @db.VarChar(50)
-  nombre               String    @db.VarChar(255)
-  tipo                 String    @db.VarChar(100)
-  marca                String?   @db.VarChar(100)
-  modelo               String?   @db.VarChar(100)
-  numero_serie         String?   @db.VarChar(100)
-  ubicacion            String?   @db.VarChar(255)
+  codigo               String    @unique
+  nombre               String
+  tipo                 String
+  marca                String?
+  modelo               String?
+  numero_serie         String?
+  ubicacion            String?
   fecha_adquisicion    DateTime?
   vida_util_anos       Int?
-  valor_adquisicion    Decimal?  @db.Decimal(10, 2)
-  estado               String    @db.VarChar(50)
-  criticidad           String    @db.VarChar(50)
-  descripcion          String?   @db.Text
+  valor_adquisicion    Decimal?
+  estado               String
+  criticidad           String
+  descripcion          String?
   especificaciones     Json?
   ultima_mantencion    DateTime?
   proxima_mantencion   DateTime?
-  horas_operacion      Decimal?  @db.Decimal(10, 2)
+  horas_operacion      Decimal?
   created_at           DateTime  @default(now())
   updated_at           DateTime  @updatedAt
 
@@ -73,24 +73,24 @@ model Equipo {
 
 model OrdenTrabajo {
   id                Int      @id @default(autoincrement())
-  numero_orden      String   @unique @db.VarChar(50)
+  numero_orden      String   @unique
   equipo_id         Int
-  tipo              String   @db.VarChar(50)
-  prioridad         String   @db.VarChar(50)
-  estado            String   @db.VarChar(50)
-  descripcion       String   @db.Text
+  tipo              String
+  prioridad         String
+  estado            String
+  descripcion       String
   fecha_solicitud   DateTime @default(now())
   fecha_programada  DateTime?
   fecha_inicio      DateTime?
   fecha_finalizacion DateTime?
   tiempo_estimado   Int?
   tiempo_real       Int?
-  costo_estimado    Decimal? @db.Decimal(10, 2)
-  costo_real        Decimal? @db.Decimal(10, 2)
+  costo_estimado    Decimal?
+  costo_real        Decimal?
   creado_por        Int
   asignado_a        Int?
-  notas             String?  @db.Text
-  resultado         String?  @db.Text
+  notas             String?
+  resultado         String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
@@ -112,13 +112,13 @@ model OrdenTrabajo {
 model Mantenimiento {
   id                     Int      @id @default(autoincrement())
   equipo_id              Int
-  tipo                   String   @db.VarChar(50)
-  frecuencia             String   @db.VarChar(50)
+  tipo                   String
+  frecuencia             String
   frecuencia_dias        Int
   ultima_realizacion     DateTime?
   proxima_programada     DateTime
-  descripcion            String   @db.Text
-  procedimiento          String?  @db.Text
+  descripcion            String
+  procedimiento          String?
   tiempo_estimado        Int?
   activo                 Boolean  @default(true)
   creado_por             Int
@@ -143,10 +143,10 @@ model MantenimientoRealizado {
   fecha_realizacion  DateTime @default(now())
   realizado_por      Int
   tiempo_real        Int?
-  costo              Decimal? @db.Decimal(10, 2)
-  observaciones      String?  @db.Text
+  costo              Decimal?
+  observaciones      String?
   tareas_realizadas  Json?
-  estado_equipo      String?  @db.VarChar(50)
+  estado_equipo      String?
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
@@ -163,11 +163,11 @@ model MantenimientoRealizado {
 
 model Documento {
   id            Int      @id @default(autoincrement())
-  tipo          String   @db.VarChar(50)
-  nombre        String   @db.VarChar(255)
-  descripcion   String?  @db.Text
-  ruta_archivo  String   @db.VarChar(500)
-  tipo_archivo  String   @db.VarChar(50)
+  tipo          String
+  nombre        String
+  descripcion   String?
+  ruta_archivo  String
+  tipo_archivo  String
   tamano        Int
   equipo_id     Int?
   orden_id      Int?
@@ -189,9 +189,9 @@ model Documento {
 model Notificacion {
   id         Int      @id @default(autoincrement())
   usuario_id Int
-  tipo       String   @db.VarChar(50)
-  titulo     String   @db.VarChar(255)
-  mensaje    String   @db.Text
+  tipo       String
+  titulo     String
+  mensaje    String
   leida      Boolean  @default(false)
   fecha_envio DateTime @default(now())
   datos      Json?
@@ -210,11 +210,11 @@ model Notificacion {
 model Log {
   id         Int      @id @default(autoincrement())
   usuario_id Int?
-  accion     String   @db.VarChar(100)
-  modulo     String   @db.VarChar(50)
-  descripcion String  @db.Text
-  ip_address String?  @db.VarChar(45)
-  user_agent String?  @db.Text
+  accion     String
+  modulo     String
+  descripcion String
+  ip_address String?
+  user_agent String?
   datos      Json?
   created_at DateTime @default(now())
 
@@ -230,9 +230,9 @@ model Log {
 
 model Configuracion {
   id              Int      @id @default(autoincrement())
-  clave           String   @unique @db.VarChar(100)
-  valor           String?  @db.Text
-  descripcion     String?  @db.VarChar(255)
+  clave           String   @unique
+  valor           String?
+  descripcion     String?
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
