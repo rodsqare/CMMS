@@ -21,19 +21,19 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       prisma.equipo.count(),
       
-      prisma.ordenTrabajo.count({
+      prisma.orden_trabajo.count({
         where: {
           created_at: { gte: hace30Dias },
         },
       }),
       
-      prisma.ordenTrabajo.count({
+      prisma.orden_trabajo.count({
         where: {
           estado: { in: ['pendiente', 'en_progreso'] },
         },
       }),
       
-      prisma.ordenTrabajo.count({
+      prisma.orden_trabajo.count({
         where: {
           estado: { in: ['pendiente', 'en_progreso'] },
           fecha_programada: {

@@ -12,7 +12,7 @@ export async function GET(
     await requireAuth()
     const { id } = await params
     
-    const orden = await prisma.ordenTrabajo.findUnique({
+    const orden = await prisma.orden_trabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
         equipo: true,
@@ -98,7 +98,7 @@ export async function PUT(
     
     const data = validation.data
     
-    const ordenExistente = await prisma.ordenTrabajo.findUnique({
+    const ordenExistente = await prisma.orden_trabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
         tecnico: true,
@@ -112,7 +112,7 @@ export async function PUT(
       )
     }
     
-    const orden = await prisma.ordenTrabajo.update({
+    const orden = await prisma.orden_trabajo.update({
       where: { id: parseInt(id) },
       data: {
         ...data,
@@ -204,7 +204,7 @@ export async function DELETE(
     const session = await requireAuth()
     const { id } = await params
     
-    const orden = await prisma.ordenTrabajo.findUnique({
+    const orden = await prisma.orden_trabajo.findUnique({
       where: { id: parseInt(id) },
     })
     
@@ -215,7 +215,7 @@ export async function DELETE(
       )
     }
     
-    await prisma.ordenTrabajo.delete({
+    await prisma.orden_trabajo.delete({
       where: { id: parseInt(id) },
     })
     

@@ -140,7 +140,7 @@ export async function getOrdenesTrabajo(filters?: OrdenesTrabajoFilters): Promis
   if (filters?.perPage) params.append("perPage", filters.perPage.toString())
 
   const queryString = params.toString()
-  const url = `/ordenes-trabajo${queryString ? `?${queryString}` : ""}`
+  const url = `/ordenes${queryString ? `?${queryString}` : ""}`
 
   console.log("[v0] getOrdenesTrabajo - API URL:", url)
 
@@ -209,7 +209,7 @@ export async function getOrdenesTrabajo(filters?: OrdenesTrabajoFilters): Promis
 export async function getOrdenTrabajo(id: number): Promise<OrdenTrabajo> {
   const client = isServer ? serverApiClient : apiClient
 
-  const response = await client.get<any>(`/ordenes-trabajo/${id}`)
+  const response = await client.get<any>(`/ordenes/${id}`)
   return transformOrdenFromAPI(response)
 }
 
@@ -220,7 +220,7 @@ export async function createOrdenTrabajo(orden: Partial<OrdenTrabajo>): Promise<
   const transformedData = transformOrdenToAPI(orden)
   console.log("[v0] createOrdenTrabajo - Sending to API:", transformedData)
 
-  const response = await client.post<any>("/ordenes-trabajo", transformedData)
+  const response = await client.post<any>("/ordenes", transformedData)
   console.log("[v0] createOrdenTrabajo - API response:", response)
 
   return transformOrdenFromAPI(response)
@@ -229,7 +229,7 @@ export async function createOrdenTrabajo(orden: Partial<OrdenTrabajo>): Promise<
 export async function updateOrdenTrabajo(id: number, orden: Partial<OrdenTrabajo>): Promise<OrdenTrabajo> {
   const client = isServer ? serverApiClient : apiClient
 
-  const response = await client.put<any>(`/ordenes-trabajo/${id}`, transformOrdenToAPI(orden))
+  const response = await client.put<any>(`/ordenes/${id}`, transformOrdenToAPI(orden))
   return transformOrdenFromAPI(response)
 }
 
@@ -238,7 +238,7 @@ export async function deleteOrdenTrabajo(id: number): Promise<boolean> {
 
   console.log("[v0] deleteOrdenTrabajo - Attempting to delete orden with id:", id)
   try {
-    const response = await client.delete<any>(`/ordenes-trabajo/${id}`)
+    const response = await client.delete<any>(`/ordenes/${id}`)
     console.log("[v0] deleteOrdenTrabajo - Raw API response:", JSON.stringify(response, null, 2))
 
     const wasSuccessful = response?.success === true || response?.message !== undefined
@@ -262,7 +262,7 @@ export async function asignarTecnico(ordenId: number, tecnicoId: number): Promis
 
   console.log("[v0] asignarTecnico - ordenId:", ordenId, "tecnicoId:", tecnicoId)
 
-  const response = await client.post<any>(`/ordenes-trabajo/${ordenId}/asignar-tecnico`, {
+  const response = await client.post<any>(`/ordenes/${ordenId}/asignar-tecnico`, {
     tecnico_id: tecnicoId,
   })
 
@@ -281,7 +281,7 @@ export async function cambiarEstado(
 
   const estadoTransformado = nuevoEstado.toLowerCase().replace(/\s+/g, "_")
 
-  const response = await client.post<any>(`/ordenes-trabajo/${ordenId}/cambiar-estado`, {
+  const response = await client.post<any>(`/ordenes/${ordenId}/cambiar-estado`, {
     estado: estadoTransformado,
     observaciones,
   })
@@ -293,9 +293,7 @@ export async function cambiarEstado(
 export async function exportOrdenTrabajoPDF(id: number): Promise<Blob> {
   const client = isServer ? serverApiClient : apiClient
 
-  console.log("[v0] exportOrdenTrabajoPDF - Exporting orden to PDF, id:", id)
-
-  const response = await client.get(`/ordenes-trabajo/${id}/export-pdf`, {
+  const response = await client.get<Blob>(`/ordenes/${id}/pdf`, {
     responseType: "blob",
   })
 
