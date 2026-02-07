@@ -253,9 +253,9 @@ export async function initializeDatabase() {
       const hashedPassword = await bcrypt.hash('admin123', 10)
       
       await pool.execute(
-        `INSERT INTO usuarios (nombre, email, password, rol, activo) 
-         VALUES (?, ?, ?, ?, ?)`,
-        ['Administrador', 'admin@cmms.com', hashedPassword, 'administrador', true]
+        `INSERT INTO usuarios (nombre, correo, contrasena, rol, estado, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+        ['Administrador', 'admin@cmms.com', hashedPassword, 'admin', 'activo']
       )
       
       console.log('[DB-INIT] Default admin user created (email: admin@cmms.com, password: admin123)')
