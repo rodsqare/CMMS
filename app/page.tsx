@@ -534,6 +534,15 @@ export default function DashboardPage() {
     loadStats()
   }, [])
 
+  // ADDED: Clean up form when dialog closes
+  useEffect(() => {
+    if (!showUserForm) {
+      setEditingUser(null)
+      setNewUser({ estado: "Activo" })
+      setUserFormErrors({})
+    }
+  }, [showUserForm])
+
   const loadEquipment = async () => {
     setEquipmentLoading(true)
     try {
@@ -3457,10 +3466,18 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">{""}</h1>
-          <Button onClick={() => setShowUserForm(true)} className="bg-green-600 hover:bg-green-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Usuario
-          </Button>
+              <Button 
+                onClick={() => {
+                  setEditingUser(null)
+                  setNewUser({ estado: "Activo" })
+                  setUserFormErrors({})
+                  setShowUserForm(true)
+                }} 
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Usuario
+              </Button>
         </div>
 
         <Card>
@@ -3613,11 +3630,19 @@ export default function DashboardPage() {
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingUser(user)
-                                    setNewUser(user)
-                                    setShowUserForm(true)
+  size="sm"
+  onClick={() => {
+    setEditingUser(user)
+    setNewUser({
+      id: user.id,
+      nombre: user.nombre,
+      correo: user.correo,
+      rol: user.rol,
+      especialidad: user.especialidad,
+      estado: user.estado,
+      permissions: user.permissions,
+    })
+    setShowUserForm(true)
                                   }}
                                   className="text-green-600 hover:text-green-700"
                                 >
@@ -3848,11 +3873,11 @@ export default function DashboardPage() {
               <div>
                 <Label htmlFor="estado">Estado</Label>
                 <Select
-                  value={newUser.estado}
+                  value={newUser.estado || "Activo"}
                   onValueChange={(value) => setNewUser({ ...newUser, estado: value as Usuario["estado"] })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={newUser.estado} />
+                    <SelectValue placeholder="Seleccionar estado" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Activo">Activo</SelectItem>
@@ -3898,15 +3923,19 @@ export default function DashboardPage() {
                   }
 
                   setUsersLoading(true)
+                  console.log("[v0] Saving usuario:", newUser)
                   const result = await saveUsuario(newUser)
+                  console.log("[v0] Save result:", result)
 
                   if (result.success) {
+                    console.log("[v0] Usuario saved successfully:", result.usuario)
                     alert("Usuario guardado exitosamente")
                     setShowUserForm(false)
                     setEditingUser(null)
                     setNewUser({ estado: "Activo" })
                     await loadUsers()
                   } else {
+                    console.error("[v0] Error saving usuario:", result.error)
                     setUserFormErrors({ general: result.error || "Error al guardar usuario" })
                   }
                   setUsersLoading(false)
@@ -4145,6 +4174,17 @@ export default function DashboardPage() {
                 className="bg-green-600 hover:bg-green-700 text-white"
                 onClick={() => {
                   setEditingUser(selectedUser)
+                  if (selectedUser) {
+                    setNewUser({
+                      id: selectedUser.id,
+                      nombre: selectedUser.nombre,
+                      correo: selectedUser.correo,
+                      rol: selectedUser.rol,
+                      especialidad: selectedUser.especialidad,
+                      estado: selectedUser.estado,
+                      permissions: selectedUser.permissions,
+                    })
+                  }
                   setShowUserDetails(false)
                   setShowUserForm(true)
                 }}

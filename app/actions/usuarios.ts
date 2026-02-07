@@ -41,16 +41,41 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
   error?: string
 }> {
   try {
+    console.log("[v0] saveUsuario called with:", usuario)
+    
     let savedUsuario: Usuario
 
     if (usuario.id) {
-      // Update existing usuario
-      savedUsuario = await updateUsuarioApi(usuario.id, usuario)
+      // Update existing usuario - ensure all fields are included
+      const dataToSave = {
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+        especialidad: usuario.especialidad || undefined,
+        estado: usuario.estado || "Activo",
+        permissions: usuario.permissions,
+        ...(usuario.contrasena && { contrasena: usuario.contrasena }),
+      }
+      
+      console.log("[v0] Updating usuario with ID:", usuario.id, "Data:", dataToSave)
+      savedUsuario = await updateUsuarioApi(usuario.id, dataToSave)
     } else {
       // Create new usuario
-      savedUsuario = await createUsuarioApi(usuario)
+      const dataToSave = {
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+        especialidad: usuario.especialidad || undefined,
+        estado: usuario.estado || "Activo",
+        contrasena: usuario.contrasena,
+        permissions: usuario.permissions,
+      }
+      
+      console.log("[v0] Creating new usuario with data:", dataToSave)
+      savedUsuario = await createUsuarioApi(dataToSave)
     }
 
+    console.log("[v0] Usuario saved successfully:", savedUsuario)
     return {
       success: true,
       usuario: savedUsuario,
