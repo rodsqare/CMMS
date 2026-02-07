@@ -158,20 +158,20 @@ export async function deleteMantenimiento(id: number) {
 
 export async function getMantenimientosStats() {
   try {
-    const [total, preventivo, correctivo, pendientes, completados] = await Promise.all([
+    const [total, preventivo, correctivo, activos, inactivos] = await Promise.all([
       prisma.mantenimiento.count(),
       prisma.mantenimiento.count({ where: { tipo: 'preventivo' } }),
       prisma.mantenimiento.count({ where: { tipo: 'correctivo' } }),
-      prisma.mantenimiento.count({ where: { resultado: 'pendiente' } }),
-      prisma.mantenimiento.count({ where: { resultado: 'completado' } }),
+      prisma.mantenimiento.count({ where: { activo: true } }),
+      prisma.mantenimiento.count({ where: { activo: false } }),
     ])
 
     return {
       total,
       preventivo,
       correctivo,
-      pendientes,
-      completados,
+      pendientes: activos,
+      completados: inactivos,
     }
   } catch (error) {
     console.error("[v0] Error fetching stats:", error)
@@ -186,11 +186,11 @@ export async function checkUpcomingMaintenances() {
 
     const upcoming = await prisma.mantenimiento.findMany({
       where: {
-        proxima_fecha: {
-          gte: today.toISOString(),
-          lte: nextWeek.toISOString(),
+        proxima_programada: {
+          gte: today,
+          lte: nextWeek,
         },
-        resultado: 'pendiente'
+        activo: true
       },
       include: {
         equipo: true,
