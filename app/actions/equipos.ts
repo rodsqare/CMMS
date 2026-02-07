@@ -3,19 +3,24 @@
 import { prisma } from "@/lib/prisma"
 
 export type Equipo = {
-  id: number
-  nombre_equipo: string
-  numero_serie: string
-  fabricante: string
+  id?: number
+  codigo: string
+  nombre: string
+  tipo: string
+  marca?: string | null
   modelo?: string | null
+  numero_serie?: string | null
   ubicacion?: string | null
-  estado: string
   fecha_adquisicion?: string | null
-  ultima_calibracion?: string | null
-  proxima_calibracion?: string | null
-  manual_pdf?: string | null
-  foto?: string | null
-  usuario_id?: number | null
+  vida_util_anos?: number | null
+  valor_adquisicion?: number | null
+  estado: string
+  criticidad: string
+  descripcion?: string | null
+  especificaciones?: any | null
+  ultima_mantencion?: string | null
+  proxima_mantencion?: string | null
+  horas_operacion?: number | null
   created_at?: string
   updated_at?: string
 }
@@ -29,7 +34,9 @@ export type EquiposResponse = {
 
 export type EquipoWithDetails = Equipo & {
   mantenimientos?: any[]
-  ordenes_trabajo?: any[]
+  ordenesTrabajo?: any[]
+  mantenimientosRealizados?: any[]
+  documentos?: any[]
 }
 
 // Obtener lista de equipos con filtros
@@ -39,7 +46,8 @@ export async function fetchEquipos(params?: {
   search?: string
   estado?: string
   ubicacion?: string
-  fabricante?: string
+  tipo?: string
+  marca?: string
 }): Promise<EquiposResponse> {
   try {
     const page = params?.page || 1
@@ -50,10 +58,11 @@ export async function fetchEquipos(params?: {
     
     if (params?.search) {
       where.OR = [
-        { nombre_equipo: { contains: params.search } },
-        { numero_serie: { contains: params.search } },
-        { fabricante: { contains: params.search } },
+        { codigo: { contains: params.search } },
+        { nombre: { contains: params.search } },
+        { marca: { contains: params.search } },
         { modelo: { contains: params.search } },
+        { numero_serie: { contains: params.search } },
       ]
     }
     
@@ -65,8 +74,12 @@ export async function fetchEquipos(params?: {
       where.ubicacion = { contains: params.ubicacion }
     }
     
-    if (params?.fabricante) {
-      where.fabricante = { contains: params.fabricante }
+    if (params?.tipo) {
+      where.tipo = params.tipo
+    }
+
+    if (params?.marca) {
+      where.marca = { contains: params.marca }
     }
 
     const [equipos, total] = await Promise.all([
@@ -103,13 +116,15 @@ export async function fetchEquipoDetails(id: number): Promise<EquipoWithDetails 
       where: { id },
       include: {
         mantenimientos: true,
-        ordenes_trabajo: true,
+        ordenesTrabajo: true,
+        mantenimientosRealizados: true,
+        documentos: true,
       }
     })
     
     return equipo as any
   } catch (error) {
-    console.error("Error fetching equipo details:", error)
+    console.error("[v0] Error fetching equipo details:", error)
     return null
   }
 }
@@ -124,40 +139,45 @@ export async function saveEquipo(data: Equipo, userId?: string): Promise<{ succe
       equipo = await prisma.equipo.update({
         where: { id: data.id },
         data: {
-          nombre_equipo: data.nombre_equipo,
-          numero_serie: data.numero_serie,
-          fabricante: data.fabricante,
-          modelo: data.modelo,
-          ubicacion: data.ubicacion,
+          codigo: data.codigo,
+          nombre: data.nombre,
+          tipo: data.tipo,
+          marca: data.marca || null,
+          modelo: data.modelo || null,
+          numero_serie: data.numero_serie || null,
+          ubicacion: data.ubicacion || null,
           estado: data.estado,
-          fecha_adquisicion: data.fecha_adquisicion,
-          ultima_calibracion: data.ultima_calibracion,
-          proxima_calibracion: data.proxima_calibracion,
-          manual_pdf: data.manual_pdf,
-          foto: data.foto,
-          usuario_id: userId ? parseInt(userId) : null,
-          updated_at: new Date(),
+          criticidad: data.criticidad,
+          descripcion: data.descripcion || null,
+          especificaciones: data.especificaciones || null,
+          fecha_adquisicion: data.fecha_adquisicion ? new Date(data.fecha_adquisicion) : null,
+          vida_util_anos: data.vida_util_anos || null,
+          valor_adquisicion: data.valor_adquisicion || null,
+          ultima_mantencion: data.ultima_mantencion ? new Date(data.ultima_mantencion) : null,
+          proxima_mantencion: data.proxima_mantencion ? new Date(data.proxima_mantencion) : null,
+          horas_operacion: data.horas_operacion || null,
         }
       })
     } else {
-      const { id, created_at, updated_at, ...createData } = data
-      
       equipo = await prisma.equipo.create({
         data: {
-          nombre_equipo: createData.nombre_equipo || "",
-          numero_serie: createData.numero_serie || "",
-          fabricante: createData.fabricante || "",
-          modelo: createData.modelo || "",
-          ubicacion: createData.ubicacion || "",
-          estado: createData.estado || "operativo",
-          fecha_adquisicion: createData.fecha_adquisicion,
-          ultima_calibracion: createData.ultima_calibracion,
-          proxima_calibracion: createData.proxima_calibracion,
-          manual_pdf: createData.manual_pdf,
-          foto: createData.foto,
-          usuario_id: userId ? parseInt(userId) : null,
-          created_at: new Date(),
-          updated_at: new Date(),
+          codigo: data.codigo,
+          nombre: data.nombre,
+          tipo: data.tipo,
+          marca: data.marca || null,
+          modelo: data.modelo || null,
+          numero_serie: data.numero_serie || null,
+          ubicacion: data.ubicacion || null,
+          estado: data.estado || "operativo",
+          criticidad: data.criticidad || "media",
+          descripcion: data.descripcion || null,
+          especificaciones: data.especificaciones || null,
+          fecha_adquisicion: data.fecha_adquisicion ? new Date(data.fecha_adquisicion) : null,
+          vida_util_anos: data.vida_util_anos || null,
+          valor_adquisicion: data.valor_adquisicion || null,
+          ultima_mantencion: data.ultima_mantencion ? new Date(data.ultima_mantencion) : null,
+          proxima_mantencion: data.proxima_mantencion ? new Date(data.proxima_mantencion) : null,
+          horas_operacion: data.horas_operacion || null,
         }
       })
     }
@@ -185,7 +205,7 @@ export async function removeEquipo(id: number, userId?: string): Promise<{ succe
     })
     return { success: true }
   } catch (error) {
-    console.error("Error deleting equipo:", error)
+    console.error("[v0] Error deleting equipo:", error)
     return { success: false, error: "Error al eliminar el equipo" }
   }
 }
