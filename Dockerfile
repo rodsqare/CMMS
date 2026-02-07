@@ -38,21 +38,15 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 
-# Create startup script as root, then change ownership
-RUN echo '#!/bin/sh' > /app/docker-entrypoint.sh && \
-    echo 'set -e' >> /app/docker-entrypoint.sh && \
-    echo 'echo "[PRISMA] Running database migrations..."' >> /app/docker-entrypoint.sh && \
-    echo 'npx prisma db push --accept-data-loss --skip-generate' >> /app/docker-entrypoint.sh && \
-    echo 'echo "[PRISMA] Database migrations completed successfully"' >> /app/docker-entrypoint.sh && \
-    echo 'echo "[NEXT] Starting Next.js application..."' >> /app/docker-entrypoint.sh && \
-    echo 'exec node_modules/.bin/next start' >> /app/docker-entrypoint.sh && \
-    chmod +x /app/docker-entrypoint.sh && \
-    chown nextjs:nodejs /app/docker-entrypoint.sh
+# Make scripts executable and change ownership
+RUN chmod +x /app/scripts/railway-start.sh && \
+    chown -R nextjs:nodejs /app
 
 USER nextjs
 
@@ -61,5 +55,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run migrations and start the application
-CMD ["/app/docker-entrypoint.sh"]
+# Run migrations and start the application using the railway script
+CMD ["sh", "/app/scripts/railway-start.sh"]
