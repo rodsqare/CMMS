@@ -38,14 +38,14 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 
-# Make scripts executable and change ownership
-RUN chmod +x /app/scripts/railway-start.sh && \
+# Make entrypoint executable and change ownership
+RUN chmod +x /app/docker-entrypoint.sh && \
     chown -R nextjs:nodejs /app
 
 USER nextjs
@@ -55,5 +55,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run migrations and start the application using the railway script
-CMD ["sh", "/app/scripts/railway-start.sh"]
+# Run the entrypoint script
+CMD ["sh", "/app/docker-entrypoint.sh"]
