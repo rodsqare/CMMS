@@ -104,7 +104,6 @@ export async function fetchUsuarioDetails(id: number): Promise<Usuario | null> {
         email: true,
         rol: true,
         activo: true,
-        avatar: true,
         created_at: true,
         updated_at: true,
       }
@@ -150,7 +149,6 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
           email: true,
           rol: true,
           activo: true,
-          avatar: true,
           created_at: true,
           updated_at: true,
         }
@@ -177,7 +175,6 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
           email: true,
           rol: true,
           activo: true,
-          avatar: true,
           created_at: true,
           updated_at: true,
         }
@@ -234,7 +231,6 @@ export async function updatePermissions(
         email: true,
         rol: true,
         activo: true,
-        avatar: true,
         created_at: true,
         updated_at: true,
       }
@@ -275,7 +271,6 @@ export async function resetPassword(
         email: true,
         rol: true,
         activo: true,
-        avatar: true,
         created_at: true,
         updated_at: true,
       }
@@ -316,7 +311,6 @@ export async function toggleUserStatus(
         email: true,
         rol: true,
         activo: true,
-        avatar: true,
         created_at: true,
         updated_at: true,
       }
