@@ -83,7 +83,12 @@ export async function fetchUsuarios(params: FetchUsuariosParams = {}): Promise<U
     ])
 
     return { 
-      data: data.map(u => ({ ...u, estado: u.activo ? 'activo' : 'inactivo' })),
+      data: data.map(u => ({ 
+        ...u, 
+        estado: u.activo ? 'activo' : 'inactivo',
+        created_at: u.created_at ? u.created_at.toISOString() : undefined,
+        updated_at: u.updated_at ? u.updated_at.toISOString() : undefined,
+      })),
       total, 
       page, 
       perPage 
@@ -111,9 +116,18 @@ export async function fetchUsuarioDetails(id: number): Promise<Usuario | null> {
     
     if (!usuario) return null
     
-    return { ...usuario, estado: usuario.activo ? 'activo' : 'inactivo' }
+    return {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      email: usuario.email,
+      rol: usuario.rol,
+      activo: usuario.activo,
+      estado: usuario.activo ? 'activo' : 'inactivo',
+      created_at: usuario.created_at ? usuario.created_at.toISOString() : undefined,
+      updated_at: usuario.updated_at ? usuario.updated_at.toISOString() : undefined,
+    }
   } catch (error) {
-    console.error("Error fetching usuario details:", error)
+    console.error("[v0] Error fetching usuario details:", error)
     return null
   }
 }
@@ -331,15 +345,19 @@ export async function toggleUserStatus(
 
 export async function getUserActivity(usuarioId: number, token: string): Promise<UserActivity> {
   try {
-    const [equipos, mantenimientos, ordenes] = await Promise.all([
-      prisma.equipo.count({ where: { usuario_id: usuarioId } }),
-      prisma.mantenimiento.count(),
-      prisma.orden_trabajo.count({ where: { tecnico_asignado_id: usuarioId } }),
+    const [ordenesCreadas, ordenesAsignadas, mantenimientosRealizados] = await Promise.all([
+      prisma.orden_trabajo.count({ where: { creado_por: usuarioId } }),
+      prisma.orden_trabajo.count({ where: { asignado_a: usuarioId } }),
+      prisma.mantenimiento_realizado.count({ where: { realizado_por: usuarioId } }),
     ])
     
-    return { equipos, mantenimientos, ordenes }
+    return { 
+      equipos: 0,
+      mantenimientos: mantenimientosRealizados,
+      ordenes: ordenesCreadas + ordenesAsignadas 
+    }
   } catch (error) {
-    console.error("Error fetching user activity:", error)
+    console.error("[v0] Error fetching user activity:", error)
     return { equipos: 0, mantenimientos: 0, ordenes: 0 }
   }
 }
