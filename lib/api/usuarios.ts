@@ -4,30 +4,22 @@ import { serverApiClient } from "./server-client"
 const isServer = typeof window === "undefined"
 
 export type Usuario = {
-  id: number
+  id?: number
   nombre: string
-  correo: string
-  rol: "Técnico" | "Supervisor" | "Administrador"
-  especialidad?: string
-  estado: "Activo" | "Inactivo"
-  fecha_creacion: string
-  ultima_actualizacion?: string
-  permissions?: {
-    gestionEquipos?: boolean
-    gestionUsuarios?: boolean
-    ordenesTrabajoCrear?: boolean
-    ordenesTrabajoAsignar?: boolean
-    ordenesTrabajoEjecutar?: boolean
-    mantenimientoPreventivo?: boolean
-    reportesGenerar?: boolean
-    reportesVer?: boolean
-    logsAcceso?: boolean
-    configuracionSistema?: boolean
-  }
+  email: string
+  password?: string
+  rol: string
+  activo: boolean
+  estado?: string
+  ultimo_acceso?: string | null
+  intentos_fallidos?: number
+  bloqueado_hasta?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export type UsuarioWithPassword = Partial<Usuario> & {
-  contrasena?: string
+  password?: string
 }
 
 export type UsuariosResponse = {

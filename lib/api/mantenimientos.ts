@@ -57,19 +57,19 @@ const transformMantenimientoFromBackend = (backend: any): Mantenimiento => {
 
   return {
     id: data.id,
-    equipoId: data.id_equipo,
+    equipoId: data.equipo_id,
     equipo: data.equipo || "",
     tipo: data.tipo,
     frecuencia: data.frecuencia,
-    proximaFecha: data.proxima_fecha,
-    ultimaFecha: data.ultima_fecha,
-    resultado: data.resultado,
-    observaciones: data.observaciones,
-    responsableId: data.responsable_id,
-    responsableNombre: data.responsable?.nombre,
+    proximaFecha: data.proxima_programada,
+    ultimaFecha: data.ultima_realizacion,
+    resultado: data.descripcion,
+    observaciones: data.procedimiento,
+    responsableId: data.creado_por,
+    responsableNombre: data.creador?.nombre,
     creadoEn: data.created_at,
     actualizadoEn: data.updated_at,
-    programada_orden_generada: data.programada_orden_generada,
+    programada_orden_generada: data.activo,
   }
 }
 
@@ -79,14 +79,14 @@ const transformMantenimientoToBackend = (
   console.log("[v0] Transforming maintenance data to backend format:", mantenimiento)
 
   const backendData: any = {
-    id_equipo: mantenimiento.equipoId,
+    equipo_id: mantenimiento.equipoId,
     tipo: mantenimiento.tipo?.toLowerCase(),
     frecuencia: mantenimiento.frecuencia?.toLowerCase(),
-    proxima_fecha: mantenimiento.proximaFecha,
-    ultima_fecha: mantenimiento.ultimaFecha,
-    resultado: mantenimiento.resultado?.toLowerCase(),
-    observaciones: mantenimiento.observaciones,
-    responsable_id: mantenimiento.tecnicoAsignadoId || mantenimiento.responsableId,
+    proxima_programada: mantenimiento.proximaFecha,
+    ultima_realizacion: mantenimiento.ultimaFecha,
+    descripcion: mantenimiento.resultado?.toLowerCase(),
+    procedimiento: mantenimiento.observaciones,
+    creado_por: mantenimiento.tecnicoAsignadoId || mantenimiento.responsableId,
   }
 
   // Remove undefined values
